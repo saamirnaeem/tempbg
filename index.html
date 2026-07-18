@@ -17,7 +17,13 @@
                         linear-gradient(-45deg, transparent 75%, #e5e5e5 75%);
       background-size: 20px 20px;
     }
-    img { max-height: 520px; width: auto; object-fit: contain; margin: 0 auto; display: block; }
+    img { 
+      max-height: 520px; 
+      width: auto; 
+      object-fit: contain; 
+      margin: 0 auto; 
+      display: block; 
+    }
     .drag-active { border-color: #14b8a6; background-color: #f0fdfa; }
   </style>
 </head>
@@ -89,7 +95,7 @@
   </div>
 
   <script>
-    // ================== YOUR KEYS ==================
+    // ================== API KEYS ==================
     const REMOVE_BG_API_KEY = "a4a-JSkpBOlxmL6V5ydlRbSpt2WapUbXNEdc";
 
     const firebaseConfig = {
@@ -103,8 +109,6 @@
     };
 
     let db;
-
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     db = firebase.database();
 
@@ -119,7 +123,7 @@
       document.getElementById('upload-screen').classList.add('hidden');
       document.getElementById('result-screen').classList.remove('hidden');
 
-      // Show Original
+      // Show Original Image
       const reader = new FileReader();
       reader.onload = (ev) => {
         currentOriginal = ev.target.result;
@@ -127,7 +131,7 @@
       };
       reader.readAsDataURL(file);
 
-      // Real Remove.bg API Call
+      // Call Remove.bg API
       const formData = new FormData();
       formData.append('image_file', file);
       formData.append('size', 'auto');
@@ -144,12 +148,12 @@
           const imageUrl = URL.createObjectURL(blob);
           document.getElementById('result-img').src = imageUrl;
         } else {
-          throw new Error("API Error");
+          throw new Error("API Limit or Error");
         }
       } catch (error) {
         console.error(error);
         document.getElementById('result-img').src = currentOriginal;
-        alert("Background removal failed. Using original image.");
+        alert("API Limit khatam ho gaya ya error aaya. Original image show kar raha hoon.");
       }
     }
 
@@ -176,7 +180,7 @@
       document.getElementById('upload-screen').classList.add('hidden');
       document.getElementById('result-screen').classList.remove('hidden');
       document.getElementById('original-img').src = src;
-      document.getElementById('result-img').src = src; // Sample mein simulation
+      document.getElementById('result-img').src = src;
     }
 
     function backToUpload() {
@@ -191,7 +195,7 @@
       link.click();
     }
 
-    // Drag & Drop
+    // Drag & Drop Support
     window.onload = () => {
       renderSamples();
       const dropZone = document.getElementById('drop-zone');
