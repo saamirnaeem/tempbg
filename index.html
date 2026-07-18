@@ -18,11 +18,11 @@
       background-size: 20px 20px;
     }
     .drag-active { border-color: #14b8a6; background-color: #f0fdfa; }
+    img { max-height: 480px; width: auto; object-fit: contain; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
-  <!-- Header -->
   <header class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
       <div class="flex items-center gap-2">
@@ -60,21 +60,21 @@
 
     <!-- Result Screen -->
     <div id="result-screen" class="hidden">
-      <button onclick="backToUpload()" class="mb-6 flex items-center gap-2 text-teal-600 hover:text-teal-700">
+      <button onclick="backToUpload()" class="mb-6 flex items-center gap-2 text-teal-600 hover:text-teal-700 font-medium">
         <i class="fa-solid fa-arrow-left"></i> New Image
       </button>
 
       <div class="grid md:grid-cols-2 gap-8">
         <div>
-          <p class="font-medium text-gray-500 mb-3">Original Image</p>
-          <div class="rounded-3xl overflow-hidden shadow-xl">
-            <img id="original-img" class="w-full" alt="">
+          <p class="font-medium text-gray-500 mb-3">Original</p>
+          <div class="rounded-3xl overflow-hidden shadow-xl bg-white p-4">
+            <img id="original-img" class="mx-auto" alt="Original">
           </div>
         </div>
         <div>
           <p class="font-medium text-gray-500 mb-3">Background Removed</p>
-          <div id="result-container" class="rounded-3xl overflow-hidden shadow-xl checkerboard min-h-[400px] flex items-center justify-center">
-            <img id="result-img" class="max-h-[500px] shadow-md" alt="">
+          <div id="result-container" class="rounded-3xl overflow-hidden shadow-xl checkerboard p-4 min-h-[400px] flex items-center justify-center bg-white">
+            <img id="result-img" class="mx-auto" alt="Result">
           </div>
         </div>
       </div>
@@ -91,7 +91,7 @@
   </div>
 
   <script>
-    // ================== YOUR FIREBASE CONFIG ==================
+    // Your Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyBsr72VFXwgW3dsJyhjGnisWgtlSA4ynVY",
       authDomain: "school-c9633.firebaseapp.com",
@@ -102,52 +102,49 @@
       appId: "1:293275030223:web:a52db38e099c4dc7019dba"
     };
 
-    // Initialize Firebase
     let db;
     function initFirebase() {
-      try {
-        firebase.initializeApp(firebaseConfig);
-        db = firebase.database();
-        console.log("✅ Firebase Connected Successfully");
-      } catch (error) {
-        console.error("Firebase Error:", error);
-      }
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
     }
 
-    // ================== Image Processing ==================
     let currentOriginal = null;
 
     function handleFile(e) {
       const file = e.target.files[0];
-      if (!file) return;
-      processImage(file);
+      if (file) processImage(file);
     }
 
-    function processImage(fileOrUrl) {
-      if (typeof fileOrUrl === 'string') {
-        // Sample
-        currentOriginal = fileOrUrl;
-        showResult();
-        document.getElementById('original-img').src = currentOriginal;
-        document.getElementById('result-img').src = currentOriginal;
-      } else {
-        const reader = new FileReader();
-        reader.onload = function(ev) {
-          currentOriginal = ev.target.result;
-          showResult();
-          document.getElementById('original-img').src = currentOriginal;
-          document.getElementById('result-img').src = currentOriginal;
-        };
-        reader.readAsDataURL(fileOrUrl);
-      }
-    }
-
-    function showResult() {
+    async function processImage(fileOrUrl) {
       document.getElementById('upload-screen').classList.add('hidden');
       document.getElementById('result-screen').classList.remove('hidden');
+
+      if (typeof fileOrUrl === 'string') {
+        currentOriginal = fileOrUrl;
+      } else {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          currentOriginal = ev.target.result;
+          document.getElementById('original-img').src = currentOriginal;
+          simulateBackgroundRemoval(currentOriginal);
+        };
+        reader.readAsDataURL(fileOrUrl);
+        return;
+      }
+
+      document.getElementById('original-img').src = currentOriginal;
+      simulateBackgroundRemoval(currentOriginal);
     }
 
-    // Sample Images
+    function simulateBackgroundRemoval(src) {
+      const resultImg = document.getElementById('result-img');
+      resultImg.src = src; // Still simulated
+
+      // TODO: Real Remove.bg API can be added here
+      console.log("Processing image...");
+    }
+
+    // Samples
     const samples = [
       "https://picsum.photos/id/64/800/800",
       "https://picsum.photos/id/201/800/800",
@@ -166,7 +163,6 @@
       });
     }
 
-    // ================== Actions ==================
     function backToUpload() {
       document.getElementById('result-screen').classList.add('hidden');
       document.getElementById('upload-screen').classList.remove('hidden');
@@ -180,53 +176,29 @@
     }
 
     async function saveToFirebase() {
-      if (!db) {
-        alert("Firebase not initialized!");
-        return;
-      }
-
+      if (!db) return alert("Firebase not ready");
       const timestamp = Date.now();
       const data = {
-        originalImage: currentOriginal,
-        processedImage: document.getElementById('result-img').src,
-        timestamp: timestamp,
-        status: "background_removed"
+        original: currentOriginal,
+        result: document.getElementById('result-img').src,
+        timestamp
       };
-
-      try {
-        await db.ref('removals/' + timestamp).set(data);
-        alert("✅ Successfully Saved to Firebase Realtime Database!");
-      } catch (err) {
-        alert("Save Failed: " + err.message);
-      }
+      await db.ref('removals/' + timestamp).set(data);
+      alert("Saved to Firebase!");
     }
 
-    // Drag & Drop
-    function setupDragDrop() {
-      const dropZone = document.getElementById('drop-zone');
-      
-      dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('drag-active');
-      });
-
-      dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('drag-active');
-      });
-
-      dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('drag-active');
-        const file = e.dataTransfer.files[0];
-        if (file) processImage(file);
-      });
-    }
-
-    // Initialize App
     window.onload = () => {
       initFirebase();
       renderSamples();
-      setupDragDrop();
+      
+      const dropZone = document.getElementById('drop-zone');
+      dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-active'); });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-active'));
+      dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-active');
+        if (e.dataTransfer.files[0]) processImage(e.dataTransfer.files[0]);
+      });
     };
   </script>
 </body>
