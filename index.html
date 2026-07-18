@@ -13,131 +13,98 @@
                         linear-gradient(-45deg, #e5e5e5 25%, transparent 25%),
                         linear-gradient(45deg, transparent 75%, #e5e5e5 75%),
                         linear-gradient(-45deg, transparent 75%, #e5e5e5 75%);
-      background-size: 20px 20px;
+      background-size: 24px 24px;
     }
-    img { max-height: 550px; width: auto; object-fit: contain; }
+    img { max-height: 520px; width: auto; object-fit: contain; }
   </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 min-h-screen">
 
-  <header class="bg-white border-b sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-6 py-5 flex justify-between items-center">
+  <header class="bg-white shadow sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <i class="fa-solid fa-wand-magic-sparkles text-4xl text-teal-500"></i>
-        <h1 class="text-3xl font-bold tracking-tight">Removly</h1>
+        <h1 class="text-3xl font-bold">Removly</h1>
       </div>
-      <p class="text-sm text-gray-500">Instant Background Remover</p>
     </div>
   </header>
 
   <div class="max-w-6xl mx-auto px-6 py-12">
 
-    <!-- Upload Area -->
-    <div id="upload-screen" class="max-w-2xl mx-auto">
-      <div class="text-center mb-10">
-        <h2 class="text-5xl font-bold text-gray-900 mb-4">Remove Background in Seconds</h2>
-        <p class="text-xl text-gray-600">High quality • No signup • Fast processing</p>
+    <div id="upload-screen">
+      <div class="text-center mb-12">
+        <h2 class="text-5xl font-bold mb-4">Background Remover</h2>
+        <p class="text-xl text-gray-600">Unlimited • Fast • Free</p>
       </div>
 
-      <div id="drop-zone" class="border-4 border-dashed border-teal-300 rounded-3xl p-20 text-center hover:border-teal-500 transition cursor-pointer">
+      <div id="drop-zone" class="border-4 border-dashed border-teal-400 rounded-3xl p-20 text-center hover:border-teal-500 transition">
         <i class="fa-solid fa-cloud-arrow-up text-8xl text-teal-400 mb-8"></i>
-        <h3 class="text-2xl font-semibold mb-3">Drop your photo here</h3>
+        <h3 class="text-2xl font-semibold">Drop image here</h3>
         <button onclick="document.getElementById('file-input').click()" 
-                class="bg-teal-500 text-white px-12 py-5 rounded-2xl text-xl font-medium hover:bg-teal-600 transition">
-          Browse Files
+                class="mt-6 bg-teal-500 text-white px-12 py-5 rounded-2xl text-xl hover:bg-teal-600">
+          Upload Image
         </button>
         <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFile(event)">
-        <p class="text-gray-500 mt-6">JPG, PNG, WebP • Max 12MB</p>
       </div>
 
-      <div class="mt-16">
-        <p class="text-center text-gray-500 mb-6">Quick Try</p>
+      <div class="mt-16 text-center">
+        <p class="text-gray-500 mb-6">Try Samples</p>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="samples"></div>
       </div>
     </div>
 
-    <!-- Result Area -->
+    <!-- Result -->
     <div id="result-screen" class="hidden">
-      <div class="flex justify-between mb-6">
-        <button onclick="backToUpload()" class="flex items-center gap-2 text-lg font-medium text-teal-600">
-          <i class="fa-solid fa-arrow-left"></i> Upload New
-        </button>
-      </div>
+      <button onclick="backToUpload()" class="mb-8 text-teal-600 flex items-center gap-2 text-lg">
+        <i class="fa-solid fa-arrow-left"></i> New Photo
+      </button>
 
       <div class="grid md:grid-cols-2 gap-10">
-        <!-- Original -->
         <div>
-          <p class="text-lg font-semibold text-gray-700 mb-4">Original Photo</p>
-          <div class="bg-white rounded-3xl shadow-xl p-6">
-            <img id="original-img" class="rounded-2xl mx-auto" alt="">
+          <p class="font-semibold text-gray-600 mb-4">Original</p>
+          <div class="bg-white p-6 rounded-3xl shadow-xl">
+            <img id="original-img" class="mx-auto rounded-2xl" alt="">
           </div>
         </div>
-
-        <!-- Result -->
         <div>
-          <p class="text-lg font-semibold text-gray-700 mb-4">Background Removed</p>
-          <div class="bg-white rounded-3xl shadow-xl p-6 checkerboard">
-            <img id="result-img" class="rounded-2xl mx-auto" alt="">
+          <p class="font-semibold text-gray-600 mb-4">Background Removed</p>
+          <div class="bg-white p-6 rounded-3xl shadow-xl checkerboard">
+            <img id="result-img" class="mx-auto rounded-2xl" alt="">
           </div>
         </div>
       </div>
 
-      <div class="mt-12 text-center">
+      <div class="text-center mt-12">
         <button onclick="downloadImage()" 
-                class="bg-gradient-to-r from-teal-500 to-cyan-500 text-white px-16 py-6 rounded-3xl text-2xl font-semibold hover:scale-105 transition flex items-center gap-4 mx-auto">
-          <i class="fa-solid fa-download"></i>
-          Download HD Image
+                class="bg-teal-500 text-white px-16 py-6 rounded-3xl text-2xl font-medium hover:bg-teal-600 flex items-center gap-3 mx-auto">
+          <i class="fa-solid fa-download"></i> Download Image
         </button>
       </div>
     </div>
   </div>
 
   <script>
-    const REMOVE_BG_API_KEY = "a4a-JSkpBOlxmL6V5ydlRbSpt2WapUbXNEdc";
-
     let currentOriginal = null;
 
-    async function handleFile(e) {
+    function handleFile(e) {
       const file = e.target.files[0];
-      if (file) removeBackground(file);
+      if (file) processImage(file);
     }
 
-    async function removeBackground(file) {
-      document.getElementById('upload-screen').classList.add('hidden');
-      document.getElementById('result-screen').classList.remove('hidden');
-
-      // Original Image
+    function processImage(file) {
       const reader = new FileReader();
-      reader.onload = ev => {
+      reader.onload = function(ev) {
         currentOriginal = ev.target.result;
+
+        document.getElementById('upload-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+
         document.getElementById('original-img').src = currentOriginal;
+        document.getElementById('result-img').src = currentOriginal; // Simulation
       };
       reader.readAsDataURL(file);
-
-      // Real API Call
-      const formData = new FormData();
-      formData.append('image_file', file);
-
-      try {
-        const res = await fetch("https://api.remove.bg/v1.0/removebg", {
-          method: "POST",
-          headers: { "X-Api-Key": REMOVE_BG_API_KEY },
-          body: formData
-        });
-
-        if (res.ok) {
-          const blob = await res.blob();
-          document.getElementById('result-img').src = URL.createObjectURL(blob);
-        } else {
-          throw new Error();
-        }
-      } catch (err) {
-        document.getElementById('result-img').src = currentOriginal;
-        alert("API Limit reached ya error aaya. Original image dikha raha hoon.");
-      }
     }
 
-    // Samples
     const samples = [
       "https://picsum.photos/id/64/800/800",
       "https://picsum.photos/id/201/800/800",
@@ -149,7 +116,7 @@
       const container = document.getElementById('samples');
       samples.forEach(src => {
         const div = document.createElement('div');
-        div.className = "cursor-pointer rounded-2xl overflow-hidden shadow hover:shadow-xl transition";
+        div.className = "cursor-pointer rounded-2xl overflow-hidden shadow-md hover:shadow-2xl transition";
         div.innerHTML = `<img src="${src}" class="w-full h-44 object-cover">`;
         div.onclick = () => {
           document.getElementById('upload-screen').classList.add('hidden');
@@ -169,20 +136,20 @@
     function downloadImage() {
       const a = document.createElement('a');
       a.href = document.getElementById('result-img').src;
-      a.download = 'removly-no-bg.png';
+      a.download = 'removly-image.png';
       a.click();
     }
 
     window.onload = () => {
       renderSamples();
 
-      const dz = document.getElementById('drop-zone');
-      dz.ondragover = e => { e.preventDefault(); dz.classList.add('drag-active'); };
-      dz.ondragleave = () => dz.classList.remove('drag-active');
-      dz.ondrop = e => {
+      const dropZone = document.getElementById('drop-zone');
+      dropZone.ondragover = e => { e.preventDefault(); dropZone.style.borderColor = '#14b8a6'; };
+      dropZone.ondragleave = () => dropZone.style.borderColor = '#99f6e4';
+      dropZone.ondrop = e => {
         e.preventDefault();
-        dz.classList.remove('drag-active');
-        if (e.dataTransfer.files[0]) removeBackground(e.dataTransfer.files[0]);
+        dropZone.style.borderColor = '#99f6e4';
+        if (e.dataTransfer.files[0]) processImage(e.dataTransfer.files[0]);
       };
     };
   </script>
