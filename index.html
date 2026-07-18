@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Removly - Background Remover</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+  <style>
+    .checkerboard {
+      background-image: linear-gradient(45deg, #e5e5e5 25%, transparent 25%),
+                        linear-gradient(-45deg, #e5e5e5 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #e5e5e5 75%),
+                        linear-gradient(-45deg, transparent 75%, #e5e5e5 75%);
+      background-size: 20px 20px;
+    }
+    .drag-active { border-color: #14b8a6; background-color: #f0fdfa; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-wand-magic-sparkles text-3xl text-teal-500"></i>
+        <h1 class="text-2xl font-bold">Removly</h1>
+      </div>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-6 py-10">
+
+    <!-- Upload Screen -->
+    <div id="upload-screen">
+      <div class="text-center mb-12">
+        <h2 class="text-5xl font-bold text-gray-900">Remove Background Instantly</h2>
+        <p class="text-xl text-gray-600 mt-3">Connected with Firebase</p>
+      </div>
+
+      <div id="drop-zone" class="border-4 border-dashed border-gray-300 rounded-3xl p-16 text-center transition-all">
+        <i class="fa-solid fa-cloud-arrow-up text-7xl text-teal-400 mb-6"></i>
+        <h3 class="text-2xl font-semibold mb-2">Drop your image here</h3>
+        <button onclick="document.getElementById('file-input').click()" 
+                class="bg-teal-500 hover:bg-teal-600 text-white px-10 py-4 rounded-2xl text-lg font-medium">
+          Upload Image
+        </button>
+        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFile(event)">
+        <p class="text-sm text-gray-500 mt-6">JPG, PNG, WebP • Max 10MB</p>
+      </div>
+
+      <div class="mt-12 text-center">
+        <p class="text-gray-500 mb-4">Or Try Sample Images</p>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="samples"></div>
+      </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div id="result-screen" class="hidden">
+      <button onclick="backToUpload()" class="mb-6 flex items-center gap-2 text-teal-600 hover:text-teal-700">
+        <i class="fa-solid fa-arrow-left"></i> New Image
+      </button>
+
+      <div class="grid md:grid-cols-2 gap-8">
+        <div>
+          <p class="font-medium text-gray-500 mb-3">Original Image</p>
+          <div class="rounded-3xl overflow-hidden shadow-xl">
+            <img id="original-img" class="w-full" alt="">
+          </div>
+        </div>
+        <div>
+          <p class="font-medium text-gray-500 mb-3">Background Removed</p>
+          <div id="result-container" class="rounded-3xl overflow-hidden shadow-xl checkerboard min-h-[400px] flex items-center justify-center">
+            <img id="result-img" class="max-h-[500px] shadow-md" alt="">
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-wrap gap-4 justify-center">
+        <button onclick="downloadImage()" class="bg-teal-500 hover:bg-teal-600 text-white px-8 py-4 rounded-2xl flex items-center gap-3 text-lg">
+          <i class="fa-solid fa-download"></i> Download HD
+        </button>
+        <button onclick="saveToFirebase()" class="border border-teal-500 text-teal-600 px-8 py-4 rounded-2xl hover:bg-teal-50">
+          Save to Firebase
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ================== YOUR FIREBASE CONFIG ==================
+    const firebaseConfig = {
+      apiKey: "AIzaSyBsr72VFXwgW3dsJyhjGnisWgtlSA4ynVY",
+      authDomain: "school-c9633.firebaseapp.com",
+      databaseURL: "https://school-c9633-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "school-c9633",
+      storageBucket: "school-c9633.firebasestorage.app",
+      messagingSenderId: "293275030223",
+      appId: "1:293275030223:web:a52db38e099c4dc7019dba"
+    };
+
+    // Initialize Firebase
+    let db;
+    function initFirebase() {
+      try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+        console.log("✅ Firebase Connected Successfully");
+      } catch (error) {
+        console.error("Firebase Error:", error);
+      }
+    }
+
+    // ================== Image Processing ==================
+    let currentOriginal = null;
+
+    function handleFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      processImage(file);
+    }
+
+    function processImage(fileOrUrl) {
+      if (typeof fileOrUrl === 'string') {
+        // Sample
+        currentOriginal = fileOrUrl;
+        showResult();
+        document.getElementById('original-img').src = currentOriginal;
+        document.getElementById('result-img').src = currentOriginal;
+      } else {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          currentOriginal = ev.target.result;
+          showResult();
+          document.getElementById('original-img').src = currentOriginal;
+          document.getElementById('result-img').src = currentOriginal;
+        };
+        reader.readAsDataURL(fileOrUrl);
+      }
+    }
+
+    function showResult() {
+      document.getElementById('upload-screen').classList.add('hidden');
+      document.getElementById('result-screen').classList.remove('hidden');
+    }
+
+    // Sample Images
+    const samples = [
+      "https://picsum.photos/id/64/800/800",
+      "https://picsum.photos/id/201/800/800",
+      "https://picsum.photos/id/237/800/800",
+      "https://picsum.photos/id/1015/800/800"
+    ];
+
+    function renderSamples() {
+      const container = document.getElementById('samples');
+      samples.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.className = "w-full h-48 object-cover rounded-2xl shadow-md cursor-pointer hover:scale-105 transition";
+        img.onclick = () => processImage(src);
+        container.appendChild(img);
+      });
+    }
+
+    // ================== Actions ==================
+    function backToUpload() {
+      document.getElementById('result-screen').classList.add('hidden');
+      document.getElementById('upload-screen').classList.remove('hidden');
+    }
+
+    function downloadImage() {
+      const link = document.createElement('a');
+      link.href = document.getElementById('result-img').src;
+      link.download = 'removed-background.png';
+      link.click();
+    }
+
+    async function saveToFirebase() {
+      if (!db) {
+        alert("Firebase not initialized!");
+        return;
+      }
+
+      const timestamp = Date.now();
+      const data = {
+        originalImage: currentOriginal,
+        processedImage: document.getElementById('result-img').src,
+        timestamp: timestamp,
+        status: "background_removed"
+      };
+
+      try {
+        await db.ref('removals/' + timestamp).set(data);
+        alert("✅ Successfully Saved to Firebase Realtime Database!");
+      } catch (err) {
+        alert("Save Failed: " + err.message);
+      }
+    }
+
+    // Drag & Drop
+    function setupDragDrop() {
+      const dropZone = document.getElementById('drop-zone');
+      
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-active');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-active');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-active');
+        const file = e.dataTransfer.files[0];
+        if (file) processImage(file);
+      });
+    }
+
+    // Initialize App
+    window.onload = () => {
+      initFirebase();
+      renderSamples();
+      setupDragDrop();
+    };
+  </script>
+</body>
+</html>
