@@ -1,0 +1,8 @@
+{
+  "name": "TrimPro URL Shortener",
+  "description": "A premium and secure enterprise-grade custom URL shortener with real-time analytics, dynamic Open Graph cards, and geographic visitor tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
